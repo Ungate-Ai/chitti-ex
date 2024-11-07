@@ -11,7 +11,7 @@ const defaultCharacter: Character = {
     settings: {
         secrets: {},
         voice: {
-            model: "en_US-hfc_female-medium",
+            model: "en_US-hfc_male-medium",
         },
     },
     system: "Roleplay and generate interesting on behalf of Thalaivaa.",

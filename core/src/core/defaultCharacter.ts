@@ -3,11 +3,11 @@ import { Character, ModelProvider } from "./types.ts";
 const defaultCharacter: Character = {
     name: "Eliza",
     clients: [
-        // "telegram",
-        // "discord",
-        // "twitter"
+        "telegram",
+        "discord",
+        "twitter"
     ],
-    modelProvider: ModelProvider.LLAMALOCAL,
+    modelProvider: ModelProvider.OPENAI,
     settings: {
         secrets: {},
         voice: {

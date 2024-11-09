@@ -22,8 +22,8 @@ About {{agentName}} (@{{twitterUserName}}):
 {{characterPostExamples}}
 
 # Task: Generate a post not more than 280 characters in the voice and style of {{agentName}}, aka @{{twitterUserName}}
-Write a single sentence (not more than 280 characters) post that is {{adjective}} about {{topic}} (without mentioning {{topic}} directly), from the perspective of {{agentName}}. Try to write something totally different than previous posts. Do not add commentary or ackwowledge this request, just write the post.
-Your response should not contain any questions. Brief, concise statements only. No emojis. Use \\n\\n (double spaces) between statements.`;
+Write a single sentence post that is {{adjective}} about {{topic}} (without mentioning {{topic}} directly), from the perspective of {{agentName}}. Try to write something totally different than previous posts. Do not add commentary or ackwowledge this request, just write the post.
+Your response should not contain any questions. Brief, concise statements only. No emojis. Use \\n\\n (double spaces) between statements.Including new line characters(\\n) and double spaces(\\n\\n), the sentence should not be more than 280 characters.`;
 
 export class TwitterPostClient extends ClientBase {
     onReady() {

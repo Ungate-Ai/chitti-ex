@@ -15,6 +15,7 @@ import { defaultActions } from "../core/actions.ts";
 import { Arguments } from "../types/index.ts";
 import { loadActionConfigs, loadCustomActions } from "./config.ts";
 import { prettyConsole } from "../index.ts";
+import { getCharacter } from "./constants.ts";
 
 export async function initializeClients(
     character: Character,
@@ -65,6 +66,30 @@ export function parseArguments(): Arguments {
     }
 }
 
+export async function loadCharactersV2(agentId: string) {
+    const loadedCharacters = [];
+
+    const result = await fetch(`https://testnet.ungate.ai/api/public/agents/${agentId}`, {
+        headers: {
+            "X-Api-Key": "v8VB0yY887lMpTA2VJMV:zeZbtGTugBTn3Qd5UXtSZBwt7gn3bg",
+        }
+    })
+    .then((res) => res.json());
+    if (result) {
+        const data = result.data;
+        const agentName = data.name;
+        const character = getCharacter(agentName);
+        if (character) {
+            loadedCharacters.push(character);
+        } else {
+            console.log("No characters found, using default character");
+            loadedCharacters.push(defaultCharacter);
+        }
+        return loadedCharacters;
+    }
+}
+
+
 export function loadCharacters(charactersArg: string): Character[] {
     let characterPaths = charactersArg
         ?.split(",")
@@ -75,7 +100,7 @@ export function loadCharacters(charactersArg: string): Character[] {
             }
             return path;
         });
-
+    console.log('characterPaths: ', characterPaths);
     const loadedCharacters = [];
 
     if (characterPaths?.length > 0) {
@@ -135,6 +160,10 @@ export async function createAgentRuntime(
     character: Character,
     db: any,
     token: string,
+    twitterUsername: string,
+    twitterPassword: string,
+    twitterEmail: string,
+    twitterCookies: string,
     configPath: string = "./elizaConfig.yaml"
 ) {
     const actionConfigs = loadActionConfigs(configPath);
@@ -145,6 +174,10 @@ export async function createAgentRuntime(
     return new AgentRuntime({
         databaseAdapter: db,
         token,
+        twitterUsername,
+        twitterPassword,
+        twitterEmail,
+        twitterCookies,
         modelProvider: character.modelProvider,
         evaluators: [],
         character,

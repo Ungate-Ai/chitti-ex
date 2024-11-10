@@ -8,7 +8,7 @@
         "stop:all": "pnpm --dir core stop:all --isRoot",
         "start:service:all": "pnpm --dir core start:service:all --isRoot",
         "stop:service:all": "pnpm --dir core stop:service:all --isRoot",
-        "start": "pnpm --dir core start --isRoot",
+        "start": "pnpm --dir core start --isRoot --twitterUsername=\"SungaterChitti\" --twitterPassword=\"k4m9V2$~bnp%mNyz\" --twitterEmail=\"support@ungate.ai\" --twitterCookies=\"[{'key':'auth_token','value':'52d5a466042a6724a49a92a9c734e84671885322','domain':'twitter.com','path':'/','secure':true,'httpOnly':true,'sameSite':'no_restriction','hostOnly':false},{'key':'ct0','value':'cc7da4e7225662b47b857896eb23c001a1bc15d5d76efdcdb24c5909be28878ef5747c949429a3f19393bc2b04a06923a95747cad020fb61924d8da22e9b91d059a848ad367757a3442b982af9cd0f08','domain':'twitter.com','path':'/','secure':true,'httpOnly':false,'sameSite':'lax','hostOnly':false}]\"  --agentId=\"3f175aab-9960-4944-8c4b-af1135fe155f\" --characters=\"../characters/trumph.character.json\"",
         "dev": "pnpm --dir core dev --isRoot",
         "lint": "pnpm --dir core lint",
         "prettier-check": "npx prettier --check .",

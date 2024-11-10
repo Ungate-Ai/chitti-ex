@@ -16,7 +16,7 @@ import {
     getTokenForProvider,
     initializeClients,
     initializeDatabase,
-    loadCharacters,
+    loadCharactersV2,
     parseArguments,
 } from "./cli/index.ts";
 import { PrettyConsole } from "./cli/colors.ts";
@@ -33,13 +33,17 @@ if (!argv.characters?.startsWith("/")) {
     argv.characters = `${basePath}${argv.characters}`;
 }
 
-let characters = loadCharacters(argv.characters);
+if (argv.agentId) {
+    console.log('agentId: ', argv.agentId);
+}
+// let characters = loadCharacters(argv.characters);
+let characters = await loadCharactersV2(argv.agentId);
 
 const directClient = new Client.DirectClient();
 
 // Initialize the pretty console
 export const prettyConsole = new PrettyConsole();
-prettyConsole.clear();
+//prettyConsole.clear();
 prettyConsole.closeByNewLine = true;
 prettyConsole.useIcons = true;
 
@@ -52,7 +56,7 @@ async function startAgent(character: Character) {
     const token = getTokenForProvider(character.modelProvider, character);
     const db = initializeDatabase();
 
-    const runtime = await createAgentRuntime(character, db, token);
+    const runtime = await createAgentRuntime(character, db, token, argv.twitterUsername, argv.twitterPassword, argv.twitterEmail, argv.twitterCookies);
     const directRuntime = createDirectRuntime(character, db, token);
 
     const clients = await initializeClients(character, runtime);
@@ -63,6 +67,7 @@ async function startAgent(character: Character) {
 
 const startAgents = async () => {
     for (const character of characters) {
+        console.log('=========', 'start agent: ', character.name, '============');
         await startAgent(character);
     }
 };
@@ -106,4 +111,4 @@ function chat() {
 }
 
 console.log("Chat started. Type 'exit' to quit.");
-chat();
+//chat();

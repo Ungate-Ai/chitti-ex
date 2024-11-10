@@ -470,6 +470,10 @@ export interface IAgentRuntime {
     serverUrl: string;
     databaseAdapter: IDatabaseAdapter;
     token: string | null;
+    twitterUsername: string | null;
+    twitterPassword: string | null;
+    twitterEmail: string | null;
+    twitterCookies: string | null;
     modelProvider: ModelProvider;
     imageGenModel: ImageGenModel;
     character: Character;

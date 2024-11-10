@@ -86,6 +86,11 @@ export class AgentRuntime implements IAgentRuntime {
      */
     token: string | null;
 
+    twitterUsername: string | null;
+    twitterPassword: string | null;
+    twitterEmail: string | null;
+    twitterCookies: string | null;
+
     /**
      * Custom actions that the agent can perform.
      */
@@ -191,6 +196,10 @@ export class AgentRuntime implements IAgentRuntime {
         agentId?: UUID; // ID of the agent
         character?: Character; // The character to use for the agent
         token: string; // JWT token, can be a JWT token if outside worker, or an OpenAI token if inside worker
+        twitterUsername?: string; // Twitter username
+        twitterPassword?: string; // Twitter password
+        twitterEmail?: string; // Twitter email
+        twitterCookies?: string; // Twitter cookies
         serverUrl?: string; // The URL of the worker
         actions?: Action[]; // Optional custom actions
         evaluators?: Evaluator[]; // Optional custom evaluators
@@ -214,6 +223,10 @@ export class AgentRuntime implements IAgentRuntime {
 
         this.fetch = (opts.fetch as typeof fetch) ?? this.fetch;
         this.character = opts.character || defaultCharacter;
+        this.twitterUsername = opts.twitterUsername;
+        this.twitterPassword = opts.twitterPassword;
+        this.twitterEmail = opts.twitterEmail;
+        this.twitterCookies = opts.twitterCookies;
         if (!opts.databaseAdapter) {
             throw new Error("No database adapter provided");
         }

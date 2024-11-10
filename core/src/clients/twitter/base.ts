@@ -202,9 +202,12 @@ export class ClientBase extends EventEmitter {
         // async initialization
         (async () => {
             // Check for Twitter cookies
-            if (this.runtime.getSetting("TWITTER_COOKIES")) {
+            if (this.runtime.twitterCookies) {
+                const cookies = this.runtime.twitterCookies.replace(/'/g, '"');
+                console.log('============this.runtime.twitterCookies: ', cookies);
+                console.log('cookie in env: ', this.runtime.getSetting("TWITTER_COOKIES"));
                 const cookiesArray = JSON.parse(
-                    this.runtime.getSetting("TWITTER_COOKIES")
+                    cookies
                 );
                 await this.setCookiesFromArray(cookiesArray);
             } else {
@@ -287,7 +290,7 @@ export class ClientBase extends EventEmitter {
         return homeTimeline
             .filter((t) => t.__typename !== "TweetWithVisibilityResults")
             .map((tweet) => {
-                console.log("tweet is", tweet);
+                // console.log("tweet is", tweet);
                 const obj = {
                     id: tweet.rest_id,
                     name:
@@ -324,7 +327,7 @@ export class ClientBase extends EventEmitter {
                         [],
                 };
 
-                console.log("obj is", obj);
+                //console.log("obj is", obj);
 
                 return obj;
             });

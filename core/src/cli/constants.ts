@@ -1,11 +1,40 @@
-import { Character, ModelProvider } from "./types.ts";
+export const getCharacter = (replacedName: string) => {
+    const character = { ...CHARACTER_TEMPLATE };
+    for (const key in character) {
+        if (typeof character[key] === "string" && character[key].includes("Thalaivaa")) {
+            character[key] = character[key].replace(/Thalaivaa/g, replacedName);
+        }
+        if (key === "messageExamples") {
+            character[key] = character[key].map((example) => {
+                return example.map((message) => {
+                    if (message.user.includes("Thalaivaa")) {
+                        message.user = message.user.replace(/Thalaivaa/g, replacedName);
+                    }
+                    if (message.content.text.includes("Thalaivaa")) {
+                        message.content.text = message.content.text.replace(/Thalaivaa/g, replacedName);
+                    }
+                    return message;
+                });
+            });
+        }
+        if (Array.isArray(character[key])) {
+            character[key] = character[key].map((item) => {
+                if (typeof item === "string" && item.includes("Thalaivaa")) {
+                    return item.replace(/Thalaivaa/g, replacedName);
+                }
+                return item;
+            });
+        }
+    }
+    return character;
+}
 
-const defaultCharacter: Character = {
+export const CHARACTER_TEMPLATE = {
     name: "Thalaivaa",
     clients: [
         "twitter"
     ],
-    modelProvider: ModelProvider.OPENAI,
+    modelProvider: "openai",
     settings: {
         secrets: {},
         voice: {
@@ -400,5 +429,3 @@ const defaultCharacter: Character = {
         ],
     },
 };
-
-export default defaultCharacter;

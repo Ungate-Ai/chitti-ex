@@ -1,6 +1,8 @@
 {
   "name": "trump",
-  "clients": [],
+  "clients": [
+    "twitter"
+  ],
   "settings": {
     "secrets": {},
     "voice": {

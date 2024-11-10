@@ -179,6 +179,8 @@ export class TwitterInteractionClient extends ClientBase {
             }
 
             console.log("Finished checking Twitter interactions");
+
+            process.exit(1);
         } catch (error) {
             console.error("Error handling Twitter interactions:", error);
         }

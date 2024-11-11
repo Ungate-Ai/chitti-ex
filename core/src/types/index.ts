@@ -5,6 +5,7 @@ interface Arguments {
     telegram?: boolean;
     isRoot?: boolean;
     agentId?: string;
+    userId?: string;
     twitterUsername?: string;
     twitterPassword?: string;
     twitterEmail?: string;

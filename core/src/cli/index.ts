@@ -69,14 +69,13 @@ export function parseArguments(): Arguments {
 export async function loadCharactersV2(agentId: string) {
     const loadedCharacters = [];
 
-    const result = await fetch(`https://testnet.ungate.ai/api/public/agents/${agentId}`, {
+    const result = await fetch(`${process.env.UNGATE_API}/public/agents/${agentId}`, {
         headers: {
             "X-Api-Key": "v8VB0yY887lMpTA2VJMV:zeZbtGTugBTn3Qd5UXtSZBwt7gn3bg",
         }
     })
     .then((res) => res.json());
 
-    console.log(result)
     if (result) {
         console.log('result: ', result);
         const data = result.data;

@@ -76,6 +76,7 @@ export async function loadCharactersV2(agentId: string) {
     })
     .then((res) => res.json());
     if (result) {
+        console.log('result: ', result);
         const data = result.data;
         const agentName = data.name;
         const character = getCharacter(agentName);

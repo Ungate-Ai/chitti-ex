@@ -72,7 +72,7 @@
     },
     "pnpm": {
         "overrides": {
-            "onnxruntime-node": "^1.20.0"
+            "onnxruntime-node": "1.19.2"
         }
     },
     "dependencies": {
@@ -90,7 +90,7 @@
         "@echogarden/espeak-ng-emscripten": "0.3.0",
         "@echogarden/kissfft-wasm": "0.2.0",
         "@echogarden/speex-resampler-wasm": "0.2.1",
-        "@huggingface/transformers": "3.0.1",
+        "@huggingface/transformers": "3.0.2",
         "@opendocsg/pdf2md": "0.1.31",
         "@solana/spl-token": "0.4.9",
         "@solana/web3.js": "1.95.4",
@@ -144,7 +144,7 @@
         "node-wav": "0.0.2",
         "nodejs-whisper": "0.1.18",
         "nodemon": "3.1.7",
-        "onnxruntime-node": "^1.20.0",
+        "onnxruntime-node": "1.19.2",
         "openai": "4.69.0",
         "pdfjs-dist": "4.7.76",
         "pg": "^8.13.1",
@@ -174,12 +174,12 @@
         "youtube-dl-exec": "3.0.10"
     },
     "trustedDependencies": {
-        "onnxruntime-node": "^1.20.0",
+        "onnxruntime-node": "1.19.2",
         "@discordjs/opus": "github:discordjs/opus",
         "@discordjs/voice": "0.17.0",
         "sharp": "^0.33.5"
     },
     "peerDependencies": {
-        "onnxruntime-node": "^1.20.0"
+        "onnxruntime-node": "1.19.2"
     }
 }

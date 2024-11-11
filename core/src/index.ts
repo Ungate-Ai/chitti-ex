@@ -51,12 +51,21 @@ prettyConsole.useIcons = true;
 const serverPort = parseInt(process.env.SERVER_PORT || "3000");
 directClient.start(serverPort);
 
+// get agent by id
+const agent = await fetch(`https://testnet.ungate.ai/api/public/agents/${argv.agentId}`, {
+    headers: {
+        "X-Api-Key": "v8VB0yY887lMpTA2VJMV:zeZbtGTugBTn3Qd5UXtSZBwt7gn3bg",
+    }
+})
+  .then((res) => res.json());
+
 async function startAgent(character: Character) {
     prettyConsole.success(`Starting agent for character ${character.name}`);
     const token = getTokenForProvider(character.modelProvider, character);
     const db = initializeDatabase();
 
-    const runtime = await createAgentRuntime(character, db, token, argv.twitterUsername, argv.twitterPassword, argv.twitterEmail, argv.twitterCookies);
+    const runtime = await createAgentRuntime(character, db, token);
+    runtime.twitterCookies = agent.data.twitterCookies || '[]';
     const directRuntime = createDirectRuntime(character, db, token);
 
     const clients = await initializeClients(character, runtime);

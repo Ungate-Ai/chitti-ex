@@ -180,7 +180,6 @@ export class TwitterInteractionClient extends ClientBase {
 
             console.log("Finished checking Twitter interactions");
 
-            process.exit(1);
         } catch (error) {
             console.error("Error handling Twitter interactions:", error);
         }
@@ -203,12 +202,13 @@ export class TwitterInteractionClient extends ClientBase {
             console.log("skipping tweet with no text", tweet.id);
             return { text: "", action: "IGNORE" };
         }
-        console.log("handling tweet", tweet.id);
+
         const formatTweet = (tweet: Tweet) => {
             return `  ID: ${tweet.id}
-  From: ${tweet.name} (@${tweet.username})
-  Text: ${tweet.text}`;
+              From: ${tweet.name} (@${tweet.username})
+              Text: ${tweet.text}`;
         };
+
         const currentPost = formatTweet(tweet);
 
         let homeTimeline = [];

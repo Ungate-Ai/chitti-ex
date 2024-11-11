@@ -75,17 +75,21 @@ export async function loadCharactersV2(agentId: string) {
         }
     })
     .then((res) => res.json());
+
+    console.log(result)
     if (result) {
         console.log('result: ', result);
         const data = result.data;
         const agentName = data.name;
         const character = getCharacter(agentName);
+
         if (character) {
             loadedCharacters.push(character);
         } else {
             console.log("No characters found, using default character");
             loadedCharacters.push(defaultCharacter);
         }
+
         return loadedCharacters;
     }
 }
@@ -161,10 +165,6 @@ export async function createAgentRuntime(
     character: Character,
     db: any,
     token: string,
-    twitterUsername: string,
-    twitterPassword: string,
-    twitterEmail: string,
-    twitterCookies: string,
     configPath: string = "./elizaConfig.yaml"
 ) {
     const actionConfigs = loadActionConfigs(configPath);
@@ -175,10 +175,6 @@ export async function createAgentRuntime(
     return new AgentRuntime({
         databaseAdapter: db,
         token,
-        twitterUsername,
-        twitterPassword,
-        twitterEmail,
-        twitterCookies,
         modelProvider: character.modelProvider,
         evaluators: [],
         character,

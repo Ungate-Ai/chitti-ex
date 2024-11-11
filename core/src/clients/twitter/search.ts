@@ -343,6 +343,8 @@ export class TwitterSearchClient extends ClientBase {
                 const debugFileName = `tweetcache/tweet_generation_${selectedTweet.id}.txt`;
 
                 fs.writeFileSync(debugFileName, responseInfo);
+
+                process.exit(0);
                 await wait();
             } catch (error) {
                 console.error(`Error sending response post: ${error}`);

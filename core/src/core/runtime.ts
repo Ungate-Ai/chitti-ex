@@ -87,8 +87,11 @@ export class AgentRuntime implements IAgentRuntime {
     token: string | null;
 
     twitterUsername: string | null;
+
     twitterPassword: string | null;
+
     twitterEmail: string | null;
+
     twitterCookies: string | null;
 
     /**
@@ -219,14 +222,13 @@ export class AgentRuntime implements IAgentRuntime {
             opts.agentId ??
             stringToUuid(opts.character.name);
 
-        console.log("Agent ID", this.agentId);
-
         this.fetch = (opts.fetch as typeof fetch) ?? this.fetch;
         this.character = opts.character || defaultCharacter;
         this.twitterUsername = opts.twitterUsername;
         this.twitterPassword = opts.twitterPassword;
         this.twitterEmail = opts.twitterEmail;
         this.twitterCookies = opts.twitterCookies;
+
         if (!opts.databaseAdapter) {
             throw new Error("No database adapter provided");
         }

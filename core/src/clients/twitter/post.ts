@@ -7,6 +7,7 @@ import { IAgentRuntime, ModelClass } from "../../core/types.ts";
 import { stringToUuid } from "../../core/uuid.ts";
 import { ClientBase } from "./base.ts";
 import { generateText } from "../../core/generation.ts";
+import { TwitterApi } from "twitter-api-v2";
 
 const twitterPostTemplate = `{{timeline}}
 
@@ -136,6 +137,20 @@ export class TwitterPostClient extends ClientBase {
             // Send the new tweet
             if (!this.dryRun) {
                 try {
+                    const client = new TwitterApi({ clientId: 'eHNnUjJwTWllU3JlbVhWQjFwTzY6MTpjaQ', clientSecret: '5MvwiQbZJttqCvaFa7E30cqVD9ro_Kw0J6Tg201eik_D-9ZyOc' }); 
+                    
+                    client.loginWithOAuth2({ code: this.runtime.twitterCode, codeVerifier: this.runtime.twitterVerifyCode, redirectUri: '/' })
+                        .then(async ({ client: loggedClient, accessToken, refreshToken, expiresIn }) => {
+                        // {loggedClient} is an authenticated client in behalf of some user
+                        // Store {accessToken} somewhere, it will be valid until {expiresIn} is hit.
+                        // If you want to refresh your token later, store {refreshToken} (it is present if 'offline.access' has been given as scope)
+
+                        // Example request
+                        // const { data: userObject } = await loggedClient.v2.me();
+                        console.log('content to post: ', content);
+                        await loggedClient.v2.tweet(content);
+                        })
+                        .catch(() => console.log('Invalid verifier or access tokens!'));
                     const result = await this.requestQueue.add(
                         async () => await this.twitterClient.sendTweet(content)
                     );

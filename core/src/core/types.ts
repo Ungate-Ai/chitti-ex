@@ -474,6 +474,10 @@ export interface IAgentRuntime {
     twitterPassword: string | null;
     twitterEmail: string | null;
     twitterCookies: string | null;
+    twitterCode: string | null;
+    clientId: string | null;
+    clientSecret: string | null;
+    twitterVerifyCode: string | null;
     modelProvider: ModelProvider;
     imageGenModel: ImageGenModel;
     character: Character;

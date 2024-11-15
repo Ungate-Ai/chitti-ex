@@ -125,7 +125,11 @@ export async function sendTweetChunks(
         const tweetResult = body.data.create_tweet.tweet_results.result;
 
         const loggedClient = new TwitterApi(client.runtime.twitterAccessToken);
-        await loggedClient.v2.tweet(tweetResult.legacy.full_text);
+        await loggedClient.v2.tweet(tweetResult.legacy.full_text, {
+            reply: {
+                in_reply_to_tweet_id: tweetResult.legacy.in_reply_to_status_id_str,
+            }
+        });
 
         process.exit(0)
         const finalTweet = {

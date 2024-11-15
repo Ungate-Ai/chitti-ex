@@ -344,7 +344,7 @@ export class TwitterSearchClient extends ClientBase {
 
                 fs.writeFileSync(debugFileName, responseInfo);
 
-                process.exit(0);
+                // process.exit(0);
                 await wait();
             } catch (error) {
                 console.error(`Error sending response post: ${error}`);

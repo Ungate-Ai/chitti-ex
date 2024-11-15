@@ -100,7 +100,6 @@
         "@types/cors": "2.8.17",
         "@types/express": "5.0.0",
         "@types/uuid": "^10.0.0",
-        "agent-twitter-client": "0.0.13",
         "ai": "^3.4.23",
         "alawmulaw": "6.0.0",
         "ansi-colors": "4.1.3",

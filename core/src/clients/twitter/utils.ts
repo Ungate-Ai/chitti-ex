@@ -123,29 +123,38 @@ export async function sendTweetChunks(
         const body = await result.json();
         console.log("send tweet body:\n", body.data.create_tweet.tweet_results);
         const tweetResult = body.data.create_tweet.tweet_results.result;
-        const clientTwitter = new TwitterApi({
-            clientId: 'eHNnUjJwTWllU3JlbVhWQjFwTzY6MTpjaQ',
-            clientSecret: '5MvwiQbZJttqCvaFa7E30cqVD9ro_Kw0J6Tg201eik_D-9ZyOc'
-        });
+        // const clientTwitter = new TwitterApi({
+        //     clientId: 'eHNnUjJwTWllU3JlbVhWQjFwTzY6MTpjaQ',
+        //     clientSecret: '5MvwiQbZJttqCvaFa7E30cqVD9ro_Kw0J6Tg201eik_D-9ZyOc'
+        // });
 
-        // console.log(accessToken, refreshToken)
-        await clientTwitter.loginWithOAuth2({
-                code:  client.runtime.twitterCode,
-                codeVerifier: client.runtime.twitterVerifyCode,
-                redirectUri: process.env.TWIITER_CALLBACK_URL
-            })
-            .then(async ({ client: loggedClient, accessToken, refreshToken, expiresIn }) => {
-                // {loggedClient} is an authenticated client in behalf of some user
-                // Store {accessToken} somewhere, it will be valid until {expiresIn} is hit.
-                // If you want to refresh your token later, store {refreshToken} (it is present if 'offline.access' has been given as scope)
+        // console.log({
+        //     code:  'S25MN0M1ZGNGekV1bEpDN1JFalIzQWJkR1RoNW1ZaFZqd2Yzc2NxV0ZwN2I5OjE3MzE2NzgwODM0MTQ6MToxOmFjOjE',
+        //     codeVerifier: 'zULK52NK3ved5Bs1jW~U3Tcwoq_AMDdMySrx08XvhgVHXFrUgJlOcVAgDlA8uC2CMeBqIkfnZNXYgnCNJdhf9Q-8BMPgedy9ZpEe0oswKII~iKu5ovjxrj.gmxKY8m7H',
+        //     redirectUri: process.env.TWITTER_CALLBACK_URL
+        // })
+        // // console.log(accessToken, refreshToken)
+        // await clientTwitter.loginWithOAuth2({
+        //         code:  'S25MN0M1ZGNGekV1bEpDN1JFalIzQWJkR1RoNW1ZaFZqd2Yzc2NxV0ZwN2I5OjE3MzE2NzgwODM0MTQ6MToxOmFjOjE',
+        //         codeVerifier: 'zULK52NK3ved5Bs1jW~U3Tcwoq_AMDdMySrx08XvhgVHXFrUgJlOcVAgDlA8uC2CMeBqIkfnZNXYgnCNJdhf9Q-8BMPgedy9ZpEe0oswKII~iKu5ovjxrj.gmxKY8m7H',
+        //         redirectUri: process.env.TWITTER_CALLBACK_URL
+        //     })
+        //     .then(async ({ client: loggedClient, accessToken, refreshToken, expiresIn }) => {
+        //         // {loggedClient} is an authenticated client in behalf of some user
+        //         // Store {accessToken} somewhere, it will be valid until {expiresIn} is hit.
+        //         // If you want to refresh your token later, store {refreshToken} (it is present if 'offline.access' has been given as scope)
+        //
+        //         // Example request
+        //         // const { data: userObject } = await loggedClient.v2.me();
+        //         console.log('content to post: ', tweetResult.legacy.full_text);
+        //         await loggedClient.v2.tweet(tweetResult.legacy.full_text);
+        //     })
+        //     .catch((error) => console.log(error));
 
-                // Example request
-                // const { data: userObject } = await loggedClient.v2.me();
-                console.log('content to post: ', tweetResult.legacy.full_text);
-                await loggedClient.v2.tweet(tweetResult.legacy.full_text);
-            })
-            .catch((error) => console.log(error));
+        const loggedClient = new TwitterApi('N2JQRm9Rd2lXczlmUzFnYVFCTE5NdXdDNTZsejBjcnRMb3BVcTJDZWlyTktCOjE3MzE2Nzg2MjM0OTU6MTowOmF0OjE');
+        await loggedClient.v2.tweet(tweetResult.legacy.full_text);
 
+        process.exit(0)
         const finalTweet = {
             id: tweetResult.rest_id,
             text: tweetResult.legacy.full_text,

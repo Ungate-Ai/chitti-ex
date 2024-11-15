@@ -128,22 +128,11 @@ export async function sendTweetChunks(
             clientSecret: '5MvwiQbZJttqCvaFa7E30cqVD9ro_Kw0J6Tg201eik_D-9ZyOc'
         });
 
-        console.log({
-            code: client.runtime.twitterCode,
-            codeVerifier: client.runtime.twitterVerifyCode,
-        })
-
-        // Validate code to get access token
-        // const { client: loggedClient, accessToken, refreshToken } = await clientTwitter.loginWithOAuth2({
-        //     code: client.runtime.twitterCode,
-        //     codeVerifier: client.runtime.twitterVerifyCode,
-        //     redirectUri: '/'
-        // })
         // console.log(accessToken, refreshToken)
         await clientTwitter.loginWithOAuth2({
-                code: 'WldxZW5YS2laNUNaQ3lud0NDWk4wYjlCRDFqUWJIdGtPVV9YMHBtTzl0elJNOjE3MzE2NDQzNDc3OTU6MTowOmFjOjE', // client.runtime.twitterCode
-                codeVerifier: 'fAptZH0ASfb6pVsg-sllWYC0EQQctRuKQQEIoI-6Mh1YMKe1M-3HkY9u~CQFOLSoiyc1NJY1dC0wwmtFGGPI.9LP5uan9MOD_cBJsug~grXPVIXFNJorE08Ske7K1sOs', // client.runtime.twitterVerifyCode
-                redirectUri: "https://testnet.ungate.ai/"
+                code:  client.runtime.twitterCode,
+                codeVerifier: client.runtime.twitterVerifyCode,
+                redirectUri: process.env.TWIITER_CALLBACK_URL
             })
             .then(async ({ client: loggedClient, accessToken, refreshToken, expiresIn }) => {
                 // {loggedClient} is an authenticated client in behalf of some user

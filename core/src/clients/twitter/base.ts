@@ -23,6 +23,7 @@ const __dirname = path.dirname(__filename);
 class RequestQueue {
     private queue: (() => Promise<any>)[] = [];
     private processing: boolean = false;
+    private rateLimitReset: number | null = null;
 
     async add<T>(request: () => Promise<T>): Promise<T> {
         return new Promise((resolve, reject) => {
@@ -31,11 +32,40 @@ class RequestQueue {
                     const result = await request();
                     resolve(result);
                 } catch (error) {
-                    reject(error);
+                    if (error.code === 429) {
+                        // Store rate limit reset time
+                        this.rateLimitReset = error.rateLimit?.reset || null;
+                        console.log(`Rate limited. Will retry after ${this.rateLimitReset}`);
+                        // Put the request back in queue
+                        this.queue.unshift(async () => {
+                            try {
+                                const result = await request();
+                                resolve(result);
+                            } catch (retryError) {
+                                reject(retryError);
+                            }
+                        });
+                        await this.handleRateLimit();
+                    } else {
+                        reject(error);
+                    }
                 }
             });
             this.processQueue();
         });
+    }
+
+    private async handleRateLimit(): Promise<void> {
+        if (this.rateLimitReset) {
+            const now = Math.floor(Date.now() / 1000);
+            const waitTime = (this.rateLimitReset - now) * 1000 + 1000; // Add 1 second buffer
+            console.log(`Waiting for ${waitTime}ms before retrying...`);
+            await new Promise(resolve => setTimeout(resolve, waitTime));
+            this.rateLimitReset = null;
+        } else {
+            // If no reset time provided, use exponential backoff
+            await this.exponentialBackoff(this.queue.length);
+        }
     }
 
     private async processQueue(): Promise<void> {
@@ -50,8 +80,10 @@ class RequestQueue {
                 await request();
             } catch (error) {
                 console.error("Error processing request:", error);
-                this.queue.unshift(request);
-                await this.exponentialBackoff(this.queue.length);
+                if (error.code !== 429) { // Don't retry non-rate-limit errors
+                    this.queue.unshift(request);
+                    await this.exponentialBackoff(this.queue.length);
+                }
             }
             await this.randomDelay();
         }
@@ -60,12 +92,12 @@ class RequestQueue {
     }
 
     private async exponentialBackoff(retryCount: number): Promise<void> {
-        const delay = Math.pow(2, retryCount) * 1000;
+        const delay = Math.min(Math.pow(2, retryCount) * 1000, 60000); // Cap at 60 seconds
         await new Promise((resolve) => setTimeout(resolve, delay));
     }
 
     private async randomDelay(): Promise<void> {
-        const delay = Math.floor(Math.random() * 2000) + 1500;
+        const delay = Math.floor(Math.random() * 2000) + 1500; // 1.5-3.5 seconds
         await new Promise((resolve) => setTimeout(resolve, delay));
     }
 }
@@ -123,7 +155,7 @@ export class ClientBase extends EventEmitter {
                 clientSecret: this.runtime.getSetting("TWITTER_CLIENT_SECRET") 
             });
 
-            const existingRefreshToken = this.runtime.twitterRefreshToken || 'c0lkQXlvTE81NFNMbmxTUVBtVlZOQUMtbGpuQjFwdVhkVi1OZnFhNkdRQU1VOjE3MzE2NjIwODc1OTI6MTowOnJ0OjE';
+            const existingRefreshToken = this.runtime.twitterRefreshToken ?? 'OGVpM21fWVBkckloVDB2Q2taUEE5M1doWjRDalJPNXBXNHRSSEdiLUlpZklJOjE3MzE2ODAxMzAyNzk6MTowOnJ0OjE';
             const { 
                 client: refreshedClient, 
                 accessToken, 
@@ -146,9 +178,17 @@ export class ClientBase extends EventEmitter {
         try {
             return await operation();
         } catch (error) {
+            console.log("Operation failed:", error.code, error.message);
             if (error.code === 401 || (error.message && error.message.includes('token'))) {
                 console.log("Token expired, attempting refresh...");
                 await this.refreshTwitterToken();
+                return await operation();
+            }
+            if (error.code === 429) {
+                const resetTime = error.rateLimit?.reset || Math.floor(Date.now() / 1000) + 900; // 15 min default
+                const waitTime = (resetTime - Math.floor(Date.now() / 1000)) * 1000;
+                console.log(`Rate limited. Waiting ${waitTime}ms before retry...`);
+                await new Promise(resolve => setTimeout(resolve, waitTime + 1000));
                 return await operation();
             }
             throw error;
@@ -159,10 +199,12 @@ export class ClientBase extends EventEmitter {
         super();
         this.runtime = runtime;
         console.log("ClientBase constructor");
+         // Initialize with a delay before making any API calls
+    setTimeout(async () => {
         if (ClientBase._twitterClient) {
             this.twitterClient = ClientBase._twitterClient;
         } else {
-            const accessToken = runtime.twitterAccessToken || 'VmYtbGVVclhJVjdGNy01Q3I2VkFRanlPTUJvVmNpS2I3MDVwQl9wS3VlSDNIOjE3MzE2NjIwODc1OTI6MTowOmF0OjE';
+            const accessToken = runtime.twitterAccessToken ?? 'RTM2cXhsZV9ISVlXYXJNRmw1RVpYMTlmT1N0eW5lbFlYbkhGX3dzVkl1cW1oOjE3MzE2ODAxMzAyNzk6MToxOmF0OjE';
             if (!accessToken) {
                 throw new Error("Twitter access token is required");
             }
@@ -219,6 +261,7 @@ export class ClientBase extends EventEmitter {
                 console.error("Error initializing Twitter client:", error);
             }
         })();
+    }, 1000); 
     }
     
 

@@ -472,6 +472,8 @@ export interface IAgentRuntime {
     token: string | null;
     twitterCode: string | null;
     twitterVerifyCode: string | null;
+    twitterAccessToken?: string | null; // temporarily its not a mandatory field
+    twitterRefreshToken?: string | null; // temporarily its not a mandatory field
     modelProvider: ModelProvider;
     imageGenModel: ImageGenModel;
     character: Character;

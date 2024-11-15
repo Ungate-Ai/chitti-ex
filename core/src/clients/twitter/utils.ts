@@ -177,7 +177,7 @@ export async function sendTweetChunks(
             createdAt: getTweetResult.data.created_at,
             userId: getTweetResult.data.author_id,
             inReplyToStatusId: getTweetResult.data.in_reply_to_user_id,
-            permanentUrl: `https://twitter.com/${twitterUsername}/status/${body.data.rest_id}`,
+            permanentUrl: `https://twitter.com/${getTweetResult.data.author_id}/status/${getTweetResult.data.id}`,
             hashtags: getTweetResult.data.entities?.hashtags || [],
             mentions: getTweetResult.data.entities?.mentions || [],
             photos: [],

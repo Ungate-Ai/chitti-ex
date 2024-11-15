@@ -1,10 +1,10 @@
-import { Tweet } from "agent-twitter-client";
+// src/clients/twitter/utils.ts
+import { Tweet } from "./base.js";  // Changed import to use our own Tweet type
 import { embeddingZeroVector } from "../../core/memory.ts";
 import { Content, Memory, UUID } from "../../core/types.ts";
 import { stringToUuid } from "../../core/uuid.ts";
 import { ClientBase } from "./base.ts";
 import { prettyConsole } from "../../index.ts";
-import { TwitterApi } from "twitter-api-v2";
 
 const MAX_TWEET_LENGTH = 240;
 
@@ -36,7 +36,7 @@ export async function buildConversationThread(
     const thread: Tweet[] = [];
     const visited: Set<string> = new Set();
 
-    async function processThread(currentTweet: Tweet) {
+    async function processThread(currentTweet: Tweet) { 
         if (!currentTweet) {
             prettyConsole.log("No current tweet found");
             return;
@@ -93,9 +93,40 @@ export async function buildConversationThread(
 
         thread.unshift(currentTweet);
 
-        if (currentTweet.inReplyToStatus) {
-            await processThread(currentTweet.inReplyToStatus);
+        if(currentTweet.inReplyToStatusId) {
+            try {
+            //const result = await client.twitterClient.v2.get(`tweets/${currentTweet.inReplyToStatusId}`);
+            const result = await client.twitterClient.v2.singleTweet(currentTweet.inReplyToStatusId);
+            if (result.data) {
+                const author = result.includes?.users?.find(u => u.id === result.data.author_id);
+                const parentTweet: Tweet = {
+                    id: result.data.id,
+                    text: result.data.text,
+                    conversationId: result.data.conversation_id || result.data.id,
+                    createdAt: result.data.created_at || new Date().toISOString(),
+                    userId: result.data.author_id || '',
+                    inReplyToStatusId: result.data.in_reply_to_user_id || undefined,
+                    permanentUrl: `https://twitter.com/${author?.username}/status/${result.data.id}`,
+                    username: author?.username,
+                    name: author?.name,
+                    hashtags: [],
+                    mentions: [],
+                    photos: [],
+                    thread: [],
+                    urls: [],
+                    videos: [],
+                    timestamp: result.data.created_at 
+                        ? new Date(result.data.created_at).getTime() / 1000 
+                        : Date.now() / 1000
+                };
+                await processThread(parentTweet);
+            }
+        } catch (error) {
+                console.error("Error fetching conversation:", error);
+            }
         }
+
+        
     }
 
     await processThread(tweet);
@@ -110,56 +141,50 @@ export async function sendTweetChunks(
 ): Promise<Memory[]> {
     const tweetChunks = splitTweetContent(content.text);
     const sentTweets: Tweet[] = [];
+    let lastTweetId = inReplyTo;
 
     for (const chunk of tweetChunks) {
-        const result = await client.requestQueue.add(
-            async () =>
-                await client.twitterClient.sendTweet(
-                    chunk.replaceAll(/\\n/g, "\n").trim(),
-                    inReplyTo
-                )
-        );
-        // console.log("send tweet result:\n", result);
-        const body = await result.json();
-        console.log("send tweet body:\n", body.data.create_tweet.tweet_results);
-        const tweetResult = body.data.create_tweet.tweet_results.result;
-        const clientTwitter = new TwitterApi({
-            clientId: 'eHNnUjJwTWllU3JlbVhWQjFwTzY6MTpjaQ',
-            clientSecret: '5MvwiQbZJttqCvaFa7E30cqVD9ro_Kw0J6Tg201eik_D-9ZyOc'
+        // Use v2 API to create tweet
+        const tweetResponse = await client.requestQueue.add(async () => {
+            return await client.twitterClient.v2.reply(
+                chunk.replaceAll(/\\n/g, "\n").trim(),
+                lastTweetId
+            );
         });
 
-        // console.log(accessToken, refreshToken)
-        await clientTwitter.loginWithOAuth2({
-                code:  client.runtime.twitterCode,
-                codeVerifier: client.runtime.twitterVerifyCode,
-                redirectUri: process.env.TWIITER_CALLBACK_URL
-            })
-            .then(async ({ client: loggedClient, accessToken, refreshToken, expiresIn }) => {
-                // {loggedClient} is an authenticated client in behalf of some user
-                // Store {accessToken} somewhere, it will be valid until {expiresIn} is hit.
-                // If you want to refresh your token later, store {refreshToken} (it is present if 'offline.access' has been given as scope)
+        const tweetResult = await tweetResponse;
+        if (!tweetResult) {
+            throw new Error("Failed to create tweet");
+        }
 
-                // Example request
-                // const { data: userObject } = await loggedClient.v2.me();
-                console.log('content to post: ', tweetResult.legacy.full_text);
-                await loggedClient.v2.tweet(tweetResult.legacy.full_text);
-            })
-            .catch((error) => console.log(error));
+        //const getTweetResult = await client.twitterClient.v2.get(`tweets/${tweetResult.data.id}`);
+        const getTweetResult = await client.twitterClient.v2.singleTweet(tweetResult.data.id);
+
+        if (!getTweetResult) {
+            throw new Error("Failed to get tweet");
+        }
+        
+
+        console.log("sent tweet result:\n", getTweetResult.data.id);
+        
+        
+        
 
         const finalTweet = {
-            id: tweetResult.rest_id,
-            text: tweetResult.legacy.full_text,
-            conversationId: tweetResult.legacy.conversation_id_str,
-            createdAt: tweetResult.legacy.created_at,
-            userId: tweetResult.legacy.user_id_str,
-            inReplyToStatusId: tweetResult.legacy.in_reply_to_status_id_str,
-            permanentUrl: `https://twitter.com/${twitterUsername}/status/${tweetResult.rest_id}`,
-            hashtags: [],
-            mentions: [],
+            id: getTweetResult.data.id,
+            text: getTweetResult.data.text,
+            conversationId: getTweetResult.data.conversation_id,
+            createdAt: getTweetResult.data.created_at,
+            userId: getTweetResult.data.author_id,
+            inReplyToStatusId: getTweetResult.data.in_reply_to_user_id,
+            permanentUrl: `https://twitter.com/${twitterUsername}/status/${body.data.rest_id}`,
+            hashtags: getTweetResult.data.entities?.hashtags || [],
+            mentions: getTweetResult.data.entities?.mentions || [],
             photos: [],
             thread: [],
-            urls: [],
+            urls: getTweetResult.data.entities?.urls.map((url) => url.url) || [],
             videos: [],
+            timestamp: getTweetResult.data.created_at ? new Date(getTweetResult.data.created_at).getTime() / 1000 : Date.now() / 1000
         } as Tweet;
 
         sentTweets.push(finalTweet);

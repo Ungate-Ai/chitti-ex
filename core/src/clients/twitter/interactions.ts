@@ -1,4 +1,5 @@
-import { SearchMode, Tweet } from "agent-twitter-client";
+// src/clients/twitter/interactions.ts
+import { Tweet, ClientBase, SearchMode } from "./base.js";
 import fs from "fs";
 import { composeContext } from "../../core/context.ts";
 import { log_to_file } from "../../core/logger.ts";
@@ -15,7 +16,6 @@ import {
     State,
 } from "../../core/types.ts";
 import { stringToUuid } from "../../core/uuid.ts";
-import { ClientBase } from "./base.ts";
 import { buildConversationThread, sendTweetChunks, wait } from "./utils.ts";
 import {
     generateMessageResponse,
@@ -104,65 +104,52 @@ export class TwitterInteractionClient extends ClientBase {
             ).tweets;
 
             // de-duplicate tweetCandidates with a set
-            const uniqueTweetCandidates = [...new Set(tweetCandidates)];
+            const uniqueTweetCandidates = [...new Set(tweetCandidates)]
+            .sort((a, b) => a.id.localeCompare(b.id))
+            .filter((tweet) => tweet.userId !== this.twitterUserId);
 
-            // Sort tweet candidates by ID in ascending order
-            uniqueTweetCandidates
-                .sort((a, b) => a.id.localeCompare(b.id))
-                .filter((tweet) => tweet.userId !== this.twitterUserId);
 
-            // for each tweet candidate, handle the tweet
-            for (const tweet of uniqueTweetCandidates) {
-                if (
-                    !this.lastCheckedTweetId ||
-                    parseInt(tweet.id) > this.lastCheckedTweetId
-                ) {
-                    const conversationId =
-                        tweet.conversationId + "-" + this.runtime.agentId;
+                   // Process each tweet
+        for (const tweet of uniqueTweetCandidates) {
+            if (!this.lastCheckedTweetId || parseInt(tweet.id) > this.lastCheckedTweetId) {
+                const conversationId = tweet.conversationId + "-" + this.runtime.agentId;
+                const roomId = stringToUuid(conversationId);
+                const userIdUUID = stringToUuid(tweet.userId);
 
-                    const roomId = stringToUuid(conversationId);
+                await this.runtime.ensureConnection(
+                    userIdUUID,
+                    roomId,
+                    tweet.username,
+                    tweet.name,
+                    "twitter"
+                );
 
-                    const userIdUUID = stringToUuid(tweet.userId as string);
+                await buildConversationThread(tweet, this);
 
-                    await this.runtime.ensureConnection(
-                        userIdUUID,
-                        roomId,
-                        tweet.username,
-                        tweet.name,
-                        "twitter"
+                const message = {
+                    content: { text: tweet.text },
+                    agentId: this.runtime.agentId,
+                    userId: userIdUUID,
+                    roomId,
+                };
+
+                await this.handleTweet({ tweet, message });
+
+                // Update and save the last checked tweet ID
+                this.lastCheckedTweetId = parseInt(tweet.id);
+                try {
+                    fs.writeFileSync(
+                        this.tweetCacheFilePath,
+                        this.lastCheckedTweetId.toString(),
+                        "utf-8"
                     );
-
-                    await buildConversationThread(tweet, this);
-
-                    const message = {
-                        content: { text: tweet.text },
-                        agentId: this.runtime.agentId,
-                        userId: userIdUUID,
-                        roomId,
-                    };
-
-                    await this.handleTweet({
-                        tweet,
-                        message,
-                    });
-
-                    // Update the last checked tweet ID after processing each tweet
-                    this.lastCheckedTweetId = parseInt(tweet.id);
-
-                    try {
-                        fs.writeFileSync(
-                            this.tweetCacheFilePath,
-                            this.lastCheckedTweetId.toString(),
-                            "utf-8"
-                        );
-                    } catch (error) {
-                        console.error(
-                            "Error saving latest checked tweet ID to file:",
-                            error
-                        );
-                    }
+                } catch (error) {
+                    console.error("Error saving latest checked tweet ID:", error);
+                }
                 }
             }
+            
+
 
             // Save the latest checked tweet ID to the file
             try {

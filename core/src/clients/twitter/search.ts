@@ -1,4 +1,5 @@
-import { SearchMode } from "agent-twitter-client";
+// src/clients/twitter/search.ts
+import { ClientBase, SearchMode, Tweet } from "./base.ts";
 import fs from "fs";
 import { composeContext } from "../../core/context.ts";
 import {
@@ -15,7 +16,7 @@ import {
     State,
 } from "../../core/types.ts";
 import { stringToUuid } from "../../core/uuid.ts";
-import { ClientBase } from "./base.ts";
+
 import { buildConversationThread, sendTweetChunks, wait } from "./utils.ts";
 
 const twitterSearchTemplate =
@@ -50,6 +51,12 @@ Your response should not contain any questions. Brief, concise statements only. 
 
 export class TwitterSearchClient extends ClientBase {
     private respondedTweets: Set<string> = new Set();
+    private authenticatedUser: {
+        id: string;
+        username: string;
+        name: string;
+    };
+
 
     constructor(runtime: IAgentRuntime) {
         // Initialize the client and pass an optional callback to be called when the client is ready
@@ -60,6 +67,7 @@ export class TwitterSearchClient extends ClientBase {
 
     async onReady() {
         this.engageWithSearchTermsLoop();
+        this.authenticatedUser = await this.getAuthenticatedUserInfo();
     }
 
     private engageWithSearchTermsLoop() {
@@ -69,6 +77,85 @@ export class TwitterSearchClient extends ClientBase {
             (Math.floor(Math.random() * (120 - 60 + 1)) + 60) * 60 * 1000
         );
     }
+
+    private formatHomeTimeline(timeline: Tweet[]): string {
+        return `# ${this.runtime.character.name}'s Home Timeline\n\n` +
+            timeline.map((tweet) => 
+                `ID: ${tweet.id}\nFrom: ${tweet.username} (@${tweet.username})${
+                    tweet.inReplyToStatusId ? ` In reply to: ${tweet.inReplyToStatusId}` : ""
+                }\nText: ${tweet.text}\n---\n`
+            ).join("\n");
+    }
+
+    private selectRandomTweets(tweets: Tweet[], count: number): Tweet[] {
+        
+        return tweets
+            .sort(() => Math.random() - 0.5)
+            .slice(0, count)
+            .filter(tweet => 
+                tweet.username !== this.authenticatedUser.username &&
+                !tweet.thread.some(t => t.tweet.username === this.authenticatedUser.username)
+            );
+    }
+
+    private buildTweetSelectionPrompt(tweets: Tweet[], homeTimeline: Tweet[], searchTerm: string): string {
+        
+        return `
+        Here are some tweets related to the search term "${searchTerm}":
+        
+        ${[...tweets, ...homeTimeline]
+            .filter((tweet) => {
+                // ignore tweets where any of the thread tweets contain a tweet by the bot
+                const thread = tweet.thread;
+                const botTweet = thread.find(
+                    (t) => t.tweet.username === this.authenticatedUser.username
+                );
+                return !botTweet;
+            })
+            .map((tweet) => `
+            ID: ${tweet.id}${tweet.inReplyToStatusId ? ` In reply to: ${tweet.inReplyToStatusId}` : ""}
+            From: ${tweet.name} (@${tweet.username})
+            Text: ${tweet.text}
+          `
+              )
+              .join("\n")}
+          
+          Which tweet is the most interesting and relevant for Ruby to reply to? Please provide only the ID of the tweet in your response.
+          Notes:
+            - Respond to English tweets only
+            - Respond to tweets that don't have a lot of hashtags, links, URLs or images
+            - Respond to tweets that are not retweets
+            - Respond to tweets where there is an easy exchange of ideas to have with the user
+            - ONLY respond with the ID of the tweet`;
+    }
+
+    private async selectInterestingTweet(tweets: Tweet[], homeTimeline: Tweet[], searchTerm: string): Promise<Tweet | null> {
+    
+        const prompt = this.buildTweetSelectionPrompt(tweets, homeTimeline, searchTerm);
+        const datestr = new Date().toUTCString().replace(/:/g, "-");
+        
+        log_to_file(`${this.runtime.character.name}_search_${datestr}`, prompt);
+
+        const tweetIdResponse = await generateText({
+            runtime: this.runtime,
+            context: prompt,
+            modelClass: ModelClass.SMALL,
+        });
+
+        const tweetId = tweetIdResponse.trim();
+        const selectedTweet = tweets.find(tweet => 
+            tweet.id.toString().includes(tweetId) || tweetId.includes(tweet.id.toString())
+        );
+
+        if (!selectedTweet) {
+            console.log("No matching tweet found for the selected ID:", tweetId);
+            return null;
+        }
+
+        return selectedTweet;
+    }
+
+    
 
     private async engageWithSearchTerms() {
         console.log("Engaging with search terms");
@@ -96,18 +183,12 @@ export class TwitterSearchClient extends ClientBase {
                 JSON.stringify(homeTimeline, null, 2)
             );
 
-            const formattedHomeTimeline =
-                `# ${this.runtime.character.name}'s Home Timeline\n\n` +
-                homeTimeline
-                    .map((tweet) => {
-                        return `ID: ${tweet.id}\nFrom: ${tweet.name} (@${tweet.username})${tweet.inReplyToStatusId ? ` In reply to: ${tweet.inReplyToStatusId}` : ""}\nText: ${tweet.text}\n---\n`;
-                    })
-                    .join("\n");
+            // Format timeline for display
+            const formattedHomeTimeline = this.formatHomeTimeline(homeTimeline);
 
             // randomly slice .tweets down to 20
-            const slicedTweets = recentTweets.tweets
-                .sort(() => Math.random() - 0.5)
-                .slice(0, 20);
+           // Randomly select tweets to process
+           const slicedTweets = this.selectRandomTweets(recentTweets.tweets, 20);
 
             if (slicedTweets.length === 0) {
                 console.log(
@@ -117,66 +198,15 @@ export class TwitterSearchClient extends ClientBase {
                 return;
             }
 
-            const prompt = `
-  Here are some tweets related to the search term "${searchTerm}":
-  
-  ${[...slicedTweets, ...homeTimeline]
-      .filter((tweet) => {
-          // ignore tweets where any of the thread tweets contain a tweet by the bot
-          const thread = tweet.thread;
-          const botTweet = thread.find(
-              (t) => t.username === this.runtime.getSetting("TWITTER_USERNAME")
-          );
-          return !botTweet;
-      })
-      .map(
-          (tweet) => `
-    ID: ${tweet.id}${tweet.inReplyToStatusId ? ` In reply to: ${tweet.inReplyToStatusId}` : ""}
-    From: ${tweet.name} (@${tweet.username})
-    Text: ${tweet.text}
-  `
-      )
-      .join("\n")}
-  
-  Which tweet is the most interesting and relevant for Ruby to reply to? Please provide only the ID of the tweet in your response.
-  Notes:
-    - Respond to English tweets only
-    - Respond to tweets that don't have a lot of hashtags, links, URLs or images
-    - Respond to tweets that are not retweets
-    - Respond to tweets where there is an easy exchange of ideas to have with the user
-    - ONLY respond with the ID of the tweet`;
-
-            const datestr = new Date().toUTCString().replace(/:/g, "-");
-            const logName = `${this.runtime.character.name}_search_${datestr}`;
-            log_to_file(logName, prompt);
-
-            const mostInterestingTweetResponse = await generateText({
-                runtime: this.runtime,
-                context: prompt,
-                modelClass: ModelClass.SMALL,
-            });
-
-            const responseLogName = `${this.runtime.character.name}_search_${datestr}_result`;
-            log_to_file(responseLogName, mostInterestingTweetResponse);
-
-            const tweetId = mostInterestingTweetResponse.trim();
-            const selectedTweet = slicedTweets.find(
-                (tweet) =>
-                    tweet.id.toString().includes(tweetId) ||
-                    tweetId.includes(tweet.id.toString())
-            );
-
-            if (!selectedTweet) {
-                console.log("No matching tweet found for the selected ID");
-                return console.log("Selected tweet ID:", tweetId);
-            }
+            // Select most interesting tweet
+            const selectedTweet = await this.selectInterestingTweet(slicedTweets, homeTimeline, searchTerm);
+            if (!selectedTweet) return;
+            
 
             console.log("Selected tweet to reply to:", selectedTweet?.text);
 
-            if (
-                selectedTweet.username ===
-                this.runtime.getSetting("TWITTER_USERNAME")
-            ) {
+            
+            if (selectedTweet.username === this.authenticatedUser.username) {
                 console.log("Skipping tweet from bot itself");
                 return;
             }
@@ -206,11 +236,7 @@ export class TwitterSearchClient extends ClientBase {
                     text: selectedTweet.text,
                     url: selectedTweet.permanentUrl,
                     inReplyTo: selectedTweet.inReplyToStatusId
-                        ? stringToUuid(
-                              selectedTweet.inReplyToStatusId +
-                                  "-" +
-                                  this.runtime.agentId
-                          )
+                        ? stringToUuid(selectedTweet.inReplyToStatusId + "-" + this.runtime.agentId)
                         : undefined,
                 },
                 userId: userIdUUID,
@@ -224,22 +250,28 @@ export class TwitterSearchClient extends ClientBase {
             }
 
             // Fetch replies and retweets
-            const replies = selectedTweet.thread;
-            const replyContext = replies
-                .filter(
-                    (reply) =>
-                        reply.username !==
-                        this.runtime.getSetting("TWITTER_USERNAME")
-                )
-                .map((reply) => `@${reply.username}: ${reply.text}`)
+            const thread = selectedTweet.thread;
+            const threadContext = thread
+                .filter(item => item.tweet?.username !== this.authenticatedUser.username)
+                .map(item => {
+                    switch (item.type) {
+                        case 'reply':
+                            return `↩️ Reply from @${item.tweet.username}: ${item.tweet.text}`;
+                        case 'retweet':
+                            return `🔄 Retweeted by @${item.tweet.username}: ${item.tweet.text}`;
+                        case 'quote':
+                            return `💬 Quoted by @${item.tweet.username}: ${item.tweet.text}`;
+                        default:
+                            return '';
+                    }
+                })
+                .filter(text => text.length > 0)
                 .join("\n");
 
             let tweetBackground = "";
-            if (selectedTweet.isRetweet) {
-                const originalTweet = await this.requestQueue.add(() =>
-                    this.twitterClient.getTweet(selectedTweet.id)
-                );
-                tweetBackground = `Retweeting @${originalTweet.username}: ${originalTweet.text}`;
+            const retweetItem = thread.find(item => item.type === 'retweet');
+            if (retweetItem) {
+                tweetBackground = `Retweeting @${retweetItem.tweet.username}: ${retweetItem.tweet.text}`;
             }
 
             // Generate image descriptions using GPT-4 vision API
@@ -260,9 +292,10 @@ export class TwitterSearchClient extends ClientBase {
   
   Original Post:
   By @${selectedTweet.username}
-  ${selectedTweet.text}${replyContext.length > 0 && `\nReplies to original post:\n${replyContext}`}
-  ${`Original post text: ${selectedTweet.text}`}
-  ${selectedTweet.urls.length > 0 ? `URLs: ${selectedTweet.urls.join(", ")}\n` : ""}${imageDescriptions.length > 0 ? `\nImages in Post (Described): ${imageDescriptions.join(", ")}\n` : ""}
+  ${selectedTweet.text}
+  ${threadContext ? `\nThread context:\n${threadContext}` : ''}
+  ${selectedTweet.urls.length > 0 ? `URLs: ${selectedTweet.urls.join(", ")}\n` : ""}
+  ${imageDescriptions.length > 0 ? `\nImages in Post (Described): ${imageDescriptions.join(", ")}\n` : ""}
   `,
             });
 
@@ -275,11 +308,13 @@ export class TwitterSearchClient extends ClientBase {
                     twitterSearchTemplate,
             });
 
+            const datestr = new Date().toUTCString().replace(/:/g, "-");  // Add this line
             // log context to file
             log_to_file(
-                `${this.runtime.getSetting("TWITTER_USERNAME")}_${datestr}_search_context`,
+                `${this.authenticatedUser.username}_${datestr}_search_context`,
                 context
             );
+            
 
             const responseContent = await generateMessageResponse({
                 runtime: this.runtime,
@@ -290,7 +325,7 @@ export class TwitterSearchClient extends ClientBase {
             responseContent.inReplyTo = message.id;
 
             log_to_file(
-                `${this.runtime.getSetting("TWITTER_USERNAME")}_${datestr}_search_response`,
+                `${this.authenticatedUser.username}_${datestr}_search_response`,
                 JSON.stringify(responseContent)
             );
 
@@ -310,8 +345,8 @@ export class TwitterSearchClient extends ClientBase {
                         this,
                         response,
                         message.roomId,
-                        this.runtime.getSetting("TWITTER_USERNAME"),
-                        tweetId
+                        this.authenticatedUser.username,
+                        selectedTweet.id
                     );
                     return memories;
                 };

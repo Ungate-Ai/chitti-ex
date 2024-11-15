@@ -1,13 +1,13 @@
-import { Tweet } from "agent-twitter-client";
+// src/clients/twitter/post.ts
+import { Tweet, ClientBase } from "./base.ts";  // Using our own tweet
 import fs from "fs";
 import { composeContext } from "../../core/context.ts";
 import { log_to_file } from "../../core/logger.ts";
 import { embeddingZeroVector } from "../../core/memory.ts";
 import { IAgentRuntime, ModelClass } from "../../core/types.ts";
 import { stringToUuid } from "../../core/uuid.ts";
-import { ClientBase } from "./base.ts";
 import { generateText } from "../../core/generation.ts";
-import { TwitterApi } from "twitter-api-v2";
+//import { TwitterApi } from "twitter-api-v2";
 
 const twitterPostTemplate = `{{timeline}}
 
@@ -60,12 +60,20 @@ export class TwitterPostClient extends ClientBase {
             let homeTimeline = [];
 
             if (!fs.existsSync("tweetcache")) fs.mkdirSync("tweetcache");
-            // read the file if it exists
+            
             if (fs.existsSync("tweetcache/home_timeline.json")) {
                 homeTimeline = JSON.parse(
                     fs.readFileSync("tweetcache/home_timeline.json", "utf-8")
                 );
             } else {
+                // Using v2 API to fetch timeline
+                const timelineResult = await this.twitterClient.v2.homeTimeline({
+                    max_results: 50,
+                    "tweet.fields": ["created_at", "conversation_id", "in_reply_to_user_id"],
+                    "user.fields": ["name", "username"],
+                    expansions: ["author_id"]
+                });
+
                 homeTimeline = await this.fetchHomeTimeline(50);
                 fs.writeFileSync(
                     "tweetcache/home_timeline.json",
@@ -81,6 +89,7 @@ export class TwitterPostClient extends ClientBase {
                     })
                     .join("\n");
 
+            
             const state = await this.runtime.composeState(
                 {
                     userId: this.runtime.agentId,
@@ -94,6 +103,7 @@ export class TwitterPostClient extends ClientBase {
                     timeline: formattedHomeTimeline,
                 }
             );
+
             // Generate new tweet
             const context = composeContext({
                 state,
@@ -102,87 +112,53 @@ export class TwitterPostClient extends ClientBase {
                     twitterPostTemplate,
             });
 
-            const datestr = new Date().toUTCString().replace(/:/g, "-");
-
-            // log context to file
-            log_to_file(
-                `${this.runtime.getSetting("TWITTER_USERNAME")}_${datestr}_generate_context`,
-                context
-            );
-
             const newTweetContent = await generateText({
                 runtime: this.runtime,
                 context,
                 modelClass: ModelClass.SMALL,
             });
-            console.log("New Tweet:", newTweetContent);
-            log_to_file(
-                `${this.runtime.getSetting("TWITTER_USERNAME")}_${datestr}_generate_response`,
-                JSON.stringify(newTweetContent)
-            );
 
-            const slice = newTweetContent.replaceAll(/\\n/g, "\n").trim();
 
-            const content = slice.slice(0, 280);
+            const content = newTweetContent.replaceAll(/\\n/g, "\n").trim().slice(0, 280);
 
-            // .slice(0, 280);
-            // // if its bigger than 280, delete the last line
-            // if (content.length > 280) {
-            //   content = content.slice(0, content.lastIndexOf("\n"));
-            // }
-
-            // if(content.length < 1) {
-            //   content = slice.slice(0, 280);
-            // }
-
-            // Send the new tweet
             if (!this.dryRun) {
                 try {
-                    // const client = new TwitterApi({ clientId: 'eHNnUjJwTWllU3JlbVhWQjFwTzY6MTpjaQ', clientSecret: '5MvwiQbZJttqCvaFa7E30cqVD9ro_Kw0J6Tg201eik_D-9ZyOc' });
-                    //
-                    // client.loginWithOAuth2({ code: this.runtime.twitterCode, codeVerifier: this.runtime.twitterVerifyCode, redirectUri: '/' })
-                    //     .then(async ({ client: loggedClient, accessToken, refreshToken, expiresIn }) => {
-                    //         // {loggedClient} is an authenticated client in behalf of some user
-                    //         // Store {accessToken} somewhere, it will be valid until {expiresIn} is hit.
-                    //         // If you want to refresh your token later, store {refreshToken} (it is present if 'offline.access' has been given as scope)
-                    //
-                    //         // Example request
-                    //         // const { data: userObject } = await loggedClient.v2.me();
-                    //         console.log('content to post: ', content);
-                    //         await loggedClient.v2.tweet(content);
-                    //     })
-                    //     .catch(() => console.log('Invalid verifier or access tokens!'));
-                    const result = await this.requestQueue.add(
-                        async () => await this.twitterClient.sendTweet(content)
-                    );
-                    // read the body of the response
-                    const body = await result.json();
-                    const tweetResult =
-                        body.data.create_tweet.tweet_results.result;
+                    // Using v2 API to create tweet
+                    const tweetResponse = await this.twitterClient.v2.tweet(content);
 
-                    const tweet = {
-                        id: tweetResult.rest_id,
-                        text: tweetResult.legacy.full_text,
-                        conversationId: tweetResult.legacy.conversation_id_str,
-                        createdAt: tweetResult.legacy.created_at,
-                        userId: tweetResult.legacy.user_id_str,
-                        inReplyToStatusId:
-                            tweetResult.legacy.in_reply_to_status_id_str,
-                        permanentUrl: `https://twitter.com/${this.runtime.getSetting("TWITTER_USERNAME")}/status/${tweetResult.rest_id}`,
+                    if (!tweetResponse.data) {
+                        throw new Error("Failed to create tweet");
+                    }
+
+                    // Get the full tweet details
+                    const tweetDetails = await this.twitterClient.v2.singleTweet(
+                        tweetResponse.data.id,
+                        {
+                            "tweet.fields": ["created_at", "conversation_id", "in_reply_to_user_id"],
+                            "user.fields": ["name", "username"]
+                        }
+                    );
+
+                    const tweet: Tweet = {
+                        id: tweetResponse.data.id,
+                        text: content,
+                        conversationId: tweetDetails.data.conversation_id || tweetResponse.data.id,
+                        createdAt: tweetDetails.data.created_at || new Date().toISOString(),
+                        userId: this.twitterUserId,
+                        permanentUrl: `https://twitter.com/${this.runtime.getSetting("TWITTER_USERNAME")}/status/${tweetResponse.data.id}`,
                         hashtags: [],
                         mentions: [],
                         photos: [],
                         thread: [],
                         urls: [],
                         videos: [],
-                    } as Tweet;
+                        timestamp: Date.now()
+                    };
 
                     const postId = tweet.id;
-                    const conversationId =
-                        tweet.conversationId + "-" + this.runtime.agentId;
+                    const conversationId = tweet.conversationId + "-" + this.runtime.agentId;
                     const roomId = stringToUuid(conversationId);
 
-                    // make sure the agent is in the room
                     await this.runtime.ensureRoomExists(roomId);
                     await this.runtime.ensureParticipantInRoom(
                         this.runtime.agentId,
@@ -202,16 +178,18 @@ export class TwitterPostClient extends ClientBase {
                         },
                         roomId,
                         embedding: embeddingZeroVector,
-                        createdAt: tweet.timestamp * 1000,
+                        createdAt: tweet.timestamp,
                     });
                 } catch (error) {
                     console.error("Error sending tweet:", error);
+                    throw error;
                 }
             } else {
                 console.log("Dry run, not sending tweet:", newTweetContent);
             }
         } catch (error) {
             console.error("Error generating new tweet:", error);
+            throw error;
         }
     }
 }

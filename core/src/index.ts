@@ -6,7 +6,7 @@ export * from "./providers/index.ts";
 
 import * as Client from "./clients/index.ts";
 
-import { Character } from "./core/types.ts";
+import { Character, UUID } from "./core/types.ts";
 
 import readline from "readline";
 import { Arguments } from "./types/index.ts";
@@ -51,13 +51,15 @@ prettyConsole.useIcons = true;
 const serverPort = parseInt(process.env.SERVER_PORT || "3000");
 directClient.start(serverPort);
 
+console.log(process.env)
 // get agent by id
-const agent = await fetch(`${process.env.UNGATE_API}/public/agents/${argv.agentId}/${argv.userId}`, {
+const agent = await fetch(`${process.env.UNGATE_API}/public/agents/${argv.agentId}?userId=${argv.userId}`, {
     headers: {
         "X-Api-Key": "v8VB0yY887lMpTA2VJMV:zeZbtGTugBTn3Qd5UXtSZBwt7gn3bg",
     }
 })
   .then((res) => res.json());
+
 
 async function startAgent(character: Character) {
     prettyConsole.success(`Starting agent for character ${character.name}`);
@@ -65,7 +67,11 @@ async function startAgent(character: Character) {
     const db = initializeDatabase();
 
     const runtime = await createAgentRuntime(character, db, token);
-    runtime.twitterCookies = agent.data.twitterCookies || '[]';
+    runtime.agentId = argv.agentId as UUID
+    runtime.userId = argv.userId
+    runtime.twitterVerifyCode = agent.data.agentUser?.twitterCodeVerify || ''
+    runtime.twitterCode = agent.data.agentUser?.twitterCode || ''
+
     const directRuntime = createDirectRuntime(character, db, token);
 
     const clients = await initializeClients(character, runtime);

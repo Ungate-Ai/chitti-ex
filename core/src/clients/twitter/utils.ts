@@ -4,6 +4,7 @@ import { Content, Memory, UUID } from "../../core/types.ts";
 import { stringToUuid } from "../../core/uuid.ts";
 import { ClientBase } from "./base.ts";
 import { prettyConsole } from "../../index.ts";
+import { TwitterApi } from "twitter-api-v2";
 
 const MAX_TWEET_LENGTH = 240;
 
@@ -122,6 +123,40 @@ export async function sendTweetChunks(
         const body = await result.json();
         console.log("send tweet body:\n", body.data.create_tweet.tweet_results);
         const tweetResult = body.data.create_tweet.tweet_results.result;
+        const clientTwitter = new TwitterApi({
+            clientId: 'eHNnUjJwTWllU3JlbVhWQjFwTzY6MTpjaQ',
+            clientSecret: '5MvwiQbZJttqCvaFa7E30cqVD9ro_Kw0J6Tg201eik_D-9ZyOc'
+        });
+
+        console.log({
+            code: client.runtime.twitterCode,
+            codeVerifier: client.runtime.twitterVerifyCode,
+        })
+
+        // Validate code to get access token
+        // const { client: loggedClient, accessToken, refreshToken } = await clientTwitter.loginWithOAuth2({
+        //     code: client.runtime.twitterCode,
+        //     codeVerifier: client.runtime.twitterVerifyCode,
+        //     redirectUri: '/'
+        // })
+        // console.log(accessToken, refreshToken)
+        await clientTwitter.loginWithOAuth2({
+                code: 'WldxZW5YS2laNUNaQ3lud0NDWk4wYjlCRDFqUWJIdGtPVV9YMHBtTzl0elJNOjE3MzE2NDQzNDc3OTU6MTowOmFjOjE',
+                codeVerifier: 'fAptZH0ASfb6pVsg-sllWYC0EQQctRuKQQEIoI-6Mh1YMKe1M-3HkY9u~CQFOLSoiyc1NJY1dC0wwmtFGGPI.9LP5uan9MOD_cBJsug~grXPVIXFNJorE08Ske7K1sOs',
+                redirectUri: "https://testnet.ungate.ai/"
+            })
+            .then(async ({ client: loggedClient, accessToken, refreshToken, expiresIn }) => {
+                console.log(12312321321321)
+                // {loggedClient} is an authenticated client in behalf of some user
+                // Store {accessToken} somewhere, it will be valid until {expiresIn} is hit.
+                // If you want to refresh your token later, store {refreshToken} (it is present if 'offline.access' has been given as scope)
+
+                // Example request
+                // const { data: userObject } = await loggedClient.v2.me();
+                console.log('content to post: ', tweetResult.legacy.full_text);
+                await loggedClient.v2.tweet(tweetResult.legacy.full_text);
+            })
+            .catch((error) => console.log(error));
 
         const finalTweet = {
             id: tweetResult.rest_id,

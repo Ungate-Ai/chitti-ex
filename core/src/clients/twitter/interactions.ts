@@ -362,7 +362,6 @@ export class TwitterInteractionClient extends ClientBase {
                     }
 
                     await this.runtime.evaluate(message, state);
-
                     await this.runtime.processActions(
                         message,
                         responseMessages,

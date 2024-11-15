@@ -86,14 +86,13 @@ export class AgentRuntime implements IAgentRuntime {
      */
     token: string | null;
 
-    twitterUsername: string | null;
+    twitterCode: string | null;
 
-    twitterPassword: string | null;
+    twitterVerifyCode: string | null;
 
-    twitterEmail: string | null;
+    userId: string | null;
 
     twitterCookies: string | null;
-
     /**
      * Custom actions that the agent can perform.
      */
@@ -178,6 +177,7 @@ export class AgentRuntime implements IAgentRuntime {
      */
     fragmentsManager: IMemoryManager;
 
+
     /**
      * Creates an instance of AgentRuntime.
      * @param opts - The options for configuring the AgentRuntime.
@@ -224,9 +224,7 @@ export class AgentRuntime implements IAgentRuntime {
 
         this.fetch = (opts.fetch as typeof fetch) ?? this.fetch;
         this.character = opts.character || defaultCharacter;
-        this.twitterUsername = opts.twitterUsername;
-        this.twitterPassword = opts.twitterPassword;
-        this.twitterEmail = opts.twitterEmail;
+
         this.twitterCookies = opts.twitterCookies;
 
         if (!opts.databaseAdapter) {

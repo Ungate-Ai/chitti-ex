@@ -88,6 +88,8 @@ export class AgentRuntime implements IAgentRuntime {
 
     twitterCode: string | null;
 
+    twitterAccessToken: string | null;
+
     twitterVerifyCode: string | null;
 
     userId: string | null;

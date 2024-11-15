@@ -71,7 +71,7 @@ async function startAgent(character: Character) {
     runtime.userId = argv.userId
     runtime.twitterVerifyCode = agent.data.agentUser?.twitterCodeVerify || ''
     runtime.twitterCode = agent.data.agentUser?.twitterCode || ''
-
+    runtime.twitterAccessToken = agent.data.agentUser?.twitterAccessToken || ''
     const directRuntime = createDirectRuntime(character, db, token);
 
     const clients = await initializeClients(character, runtime);

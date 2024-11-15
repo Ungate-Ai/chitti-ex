@@ -472,6 +472,7 @@ export interface IAgentRuntime {
     token: string | null;
     twitterCode: string | null;
     twitterVerifyCode: string | null;
+    twitterAccessToken: string | null;
     modelProvider: ModelProvider;
     imageGenModel: ImageGenModel;
     character: Character;

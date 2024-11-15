@@ -141,12 +141,11 @@ export async function sendTweetChunks(
         // })
         // console.log(accessToken, refreshToken)
         await clientTwitter.loginWithOAuth2({
-                code: 'WldxZW5YS2laNUNaQ3lud0NDWk4wYjlCRDFqUWJIdGtPVV9YMHBtTzl0elJNOjE3MzE2NDQzNDc3OTU6MTowOmFjOjE',
-                codeVerifier: 'fAptZH0ASfb6pVsg-sllWYC0EQQctRuKQQEIoI-6Mh1YMKe1M-3HkY9u~CQFOLSoiyc1NJY1dC0wwmtFGGPI.9LP5uan9MOD_cBJsug~grXPVIXFNJorE08Ske7K1sOs',
+                code: 'WldxZW5YS2laNUNaQ3lud0NDWk4wYjlCRDFqUWJIdGtPVV9YMHBtTzl0elJNOjE3MzE2NDQzNDc3OTU6MTowOmFjOjE', // client.runtime.twitterCode
+                codeVerifier: 'fAptZH0ASfb6pVsg-sllWYC0EQQctRuKQQEIoI-6Mh1YMKe1M-3HkY9u~CQFOLSoiyc1NJY1dC0wwmtFGGPI.9LP5uan9MOD_cBJsug~grXPVIXFNJorE08Ske7K1sOs', // client.runtime.twitterVerifyCode
                 redirectUri: "https://testnet.ungate.ai/"
             })
             .then(async ({ client: loggedClient, accessToken, refreshToken, expiresIn }) => {
-                console.log(12312321321321)
                 // {loggedClient} is an authenticated client in behalf of some user
                 // Store {accessToken} somewhere, it will be valid until {expiresIn} is hit.
                 // If you want to refresh your token later, store {refreshToken} (it is present if 'offline.access' has been given as scope)

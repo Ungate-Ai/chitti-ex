@@ -51,7 +51,6 @@ prettyConsole.useIcons = true;
 const serverPort = parseInt(process.env.SERVER_PORT || "3000");
 directClient.start(serverPort);
 
-console.log(process.env)
 // get agent by id
 const agent = await fetch(`${process.env.UNGATE_API}/public/agents/${argv.agentId}?userId=${argv.userId}`, {
     headers: {
@@ -59,7 +58,6 @@ const agent = await fetch(`${process.env.UNGATE_API}/public/agents/${argv.agentI
     }
 })
   .then((res) => res.json());
-
 
 async function startAgent(character: Character) {
     prettyConsole.success(`Starting agent for character ${character.name}`);

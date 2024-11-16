@@ -124,10 +124,15 @@ export class TwitterPostClient extends ClientBase {
             const slice = newTweetContent.replaceAll(/\\n/g, "\n").trim();
 
             const content = slice.slice(0, 280);
-            console.log(12321321312);
+          try {
+              const loggedClient = new TwitterApi(this.runtime.twitterAccessToken);
+              await loggedClient.v2.tweet(content);
+          }catch (error) {
+                console.log(this.runtime.twitterAccessToken)
+                console.log(error)
+                process.exit(1)
+          }
 
-            const loggedClient = new TwitterApi(this.runtime.twitterAccessToken);
-            await loggedClient.v2.tweet(content);
             // .slice(0, 280);
             // // if its bigger than 280, delete the last line
             // if (content.length > 280) {

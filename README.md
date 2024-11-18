@@ -1,6 +1,4 @@
-# Eliza
-
-<img src="./docs/static/img/eliza_banner.jpg" alt="Eliza Banner" width="100%" />
+# Chitti
 
 ### [For Chinese Version: 中文说明](./README_CN.md)
 
